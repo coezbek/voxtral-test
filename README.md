@@ -25,7 +25,7 @@ uv run streaming.py
 
 ## Timestamps
 
-Voxtral does not supports segment or word level timestamps (their announcement says coming soon)[https://mistral.ai/news/voxtral]. A poor man's sliding window implementation is provided in `timestamps.py`.
+Voxtral does not supports segment or word level timestamps [https://mistral.ai/news/voxtral](their announcement says coming soon). A poor man's sliding window implementation is provided in `timestamps.py`.
 
 ```
 uv run timestamps.py
