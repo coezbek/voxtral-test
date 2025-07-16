@@ -23,6 +23,15 @@ uv run transcribe.py
 uv run streaming.py
 ```
 
+## VAD-based streaming
+
+This script uses `auditok` for Voice Activity Detection (VAD) and streams audio chunks to the Voxtral model for transcription. Takes 8 seconds to transcribe the 180 seconds of Obama Audio on a RTX 3090 or 62 seconds for 31 minutes of the Count of Monte Cristo. Max concurrency is set to 32, but an RTX 3090 is pretty maxed out at ~16 parallel requests.
+
+```
+uv pip install auditok
+uv run vad_streaming.py
+```
+
 ## Timestamps
 
 Voxtral does not supports segment or word level timestamps [their announcement says coming soon](https://mistral.ai/news/voxtral). A poor man's sliding window implementation is provided in `timestamps.py`.
