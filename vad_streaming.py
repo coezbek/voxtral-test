@@ -13,6 +13,8 @@ This file-based approach eliminates in-memory data corruption issues and allows 
 easy inspection of the exact audio data being sent to the API.
 """
 import asyncio
+from pathlib import Path
+import tempfile
 from typing import Tuple, AsyncGenerator
 import os
 
@@ -29,7 +31,6 @@ openai_api_key = "EMPTY"
 openai_api_base = "http://localhost:8333/v1"
 
 MAX_CONCURRENCY = 32
-PROCESSED_CHUNKS_DIR = "processed_chunks"
 
 # VAD (Voice Activity Detection) parameters
 VAD_ENERGY_THRESHOLD = 55
@@ -49,17 +50,17 @@ async def process_and_transcribe_chunk(
     sem: asyncio.Semaphore,
     client: AsyncOpenAI,
     model: str,
-    region: auditok.AudioRegion,
-    idx: int,
+    region: auditok.AudioRegion
 ) -> Tuple[int, int, AsyncGenerator[str, None]]:
     """Saves an audio region and returns streaming generator for transcription."""
     
     await sem.acquire()
 
-    # Ugly to do this round-trip, but otherwise we loose all the metadata
-    file_path = os.path.join(PROCESSED_CHUNKS_DIR, f"{idx:04d}.wav")
-    region.save(file_path)
-    raw_audio_chunk = RawAudio.from_audio(Audio.from_file(file_path, strict=False))
+    # Ugly to do this round-trip, but otherwise we lose all the metadata
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp_wav = Path(tmpdir) / 'chunk.wav'
+        region.save(tmp_wav)
+        raw_audio_chunk = RawAudio.from_audio(Audio.from_file(tmp_wav, strict=False))
 
     req = TranscriptionRequest(
         model=model,
@@ -92,8 +93,6 @@ async def process_and_transcribe_streaming(audio_path: str, client: AsyncOpenAI,
     Splits audio with VAD and processes chunks in parallel, with ordered output.
     """
     print("Processing audio with VAD and streaming transcription...")
-    os.makedirs(PROCESSED_CHUNKS_DIR, exist_ok=True)
-    print(f"Processed chunks will be saved in '{PROCESSED_CHUNKS_DIR}/'")
 
     audio_regions = auditok.split(
         audio_path,
@@ -107,7 +106,7 @@ async def process_and_transcribe_streaming(audio_path: str, client: AsyncOpenAI,
     sem = asyncio.Semaphore(MAX_CONCURRENCY)
     
     # Create tasks for parallel processing (start all immediately)
-    tasks = [asyncio.create_task(process_and_transcribe_chunk(sem, client, model, region, i)) for i, region in enumerate(audio_regions)]
+    tasks = [asyncio.create_task(process_and_transcribe_chunk(sem, client, model, region)) for region in audio_regions]
     
     print(f"Dispatching {len(tasks)} chunks for parallel processing (max {MAX_CONCURRENCY} concurrent)...")
     
