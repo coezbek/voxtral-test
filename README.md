@@ -1,5 +1,9 @@
 # Voxtral Test
 
+My investigation of Voxtral Mini-3B's capabilities.
+
+## Installation / Basic operation
+
 On my system `--torch-backend=auto` fails, so I have to manually set it, after querying `nvidia-smi` (see: https://github.com/astral-sh/uv/issues/14647)
 
 ```
